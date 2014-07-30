@@ -95,14 +95,15 @@ def do_one(opts, _input, output):
 
     classes = build_classes(_input, translation_unit.cursor)
     rendered = ''
-    tpl = Template(filename=os.path.join('templates', opts.template+'.mako'))
 
-    if opts.template == 'struct':
-        classes = [x for x in classes if '::detail::enum_tag' not in x.bases]
-        rendered = tpl.render(classes=classes, include_file=_input, size_check=opts.size_check)
-    elif opts.template == 'enum':
-        classes = [x for x in classes if '::detail::enum_tag' in x.bases]
-        rendered = tpl.render(classes=classes, include_file=_input)
+    if opts.template == 'struct' or opts.template == 'all':
+        tpl = Template(filename=os.path.join('templates', 'struct'+'.mako'))
+        klasses = [x for x in classes if '::detail::enum_tag' not in x.bases]
+        rendered += '\n' + tpl.render(classes=klasses, include_file=_input, size_check=opts.size_check)
+    if opts.template == 'enum' or opts.template == 'all':
+        tpl = Template(filename=os.path.join('templates', 'enum'+'.mako'))
+        klasses = [x for x in classes if '::detail::enum_tag' in x.bases]
+        rendered += '\n' + tpl.render(classes=klasses, include_file=_input)
     with file(opts.output, 'w') as f:
         f.write(rendered)
 
