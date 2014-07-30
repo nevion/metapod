@@ -6,6 +6,7 @@ import os
 import clang.cindex
 import itertools
 from mako.template import Template
+import argparse
 
 def get_annotations(node):
     return [c.displayname for c in node.get_children()
@@ -61,7 +62,8 @@ def build_classes(_input, cursor):
 def do_one(opts, _input, output):
     clang.cindex.Config.set_library_file('/usr/lib64/libclang.so.3.4')
     index = clang.cindex.Index.create()
-    translation_unit = index.parse(_input, ['-x', 'c++', '-std=c++11', '-D__CODE_GENERATOR__'])
+    clang_args = ['-x', 'c++', '-std=c++11', '-D__CODE_GENERATOR__']+opts.args
+    translation_unit = index.parse(_input, clang_args)
 
     classes = build_classes(_input, translation_unit.cursor)
     tpl = Template(filename='struct.mako')
@@ -72,11 +74,11 @@ def do_one(opts, _input, output):
 
 
 def main():
-    import argparse
     parser = argparse.ArgumentParser(description='database framelog upload script')
-    parser.add_argument('input', nargs='+', help='input files')
+    parser.add_argument('input', help='input file')
+    parser.add_argument('args', nargs=argparse.REMAINDER, help='remainding args')
     opts = parser.parse_args()
-    for _input in opts.input:
+    for _input in [opts.input]:
         head,ext = os.path.splitext(_input)
 
         if ext == 'in':

@@ -16,6 +16,6 @@
     % for i,f in enumerate(c.fields):
         decltype(declval<${c.name}>().${f.name})${',' if i == len(c.fields)-1 else ''}
     % endfor
-        >::value == ${f}::SIZE)
+        >::value == ${f.name}::SIZE, "packed ${f.name} size check failed")
 
 % endfor
