@@ -7,36 +7,59 @@ import clang.cindex
 import itertools
 from mako.template import Template
 import argparse
+opts = None
 
 def get_annotations(node):
     return [c.displayname for c in node.get_children()
             if c.kind == clang.cindex.CursorKind.ANNOTATE_ATTR]
 
+class Enum(object):
+    def __init__(self, cursor):
+        self.name = cursor.spelling
+        self.valuepairs = []
+        if opts.uml:
+            print ' enum: %s: %s'%(self.name, cursor.type.spelling)
+        self.annotations = get_annotations(cursor)
+        self.access = cursor.access_specifier
+        for c in cursor.get_children():
+            #print 'enum class: ',c.kind
+            #print c.displayname, c.enum_value
+            #print dir(c)
+            self.valuepairs.append((c.displayname, c.enum_value))
+
 class Field(object):
     def __init__(self, cursor):
         self.name = cursor.spelling
-        print ' +%s: %s'%(self.name, cursor.type.spelling)
+        if opts.uml:
+            print ' +%s: %s'%(self.name, cursor.type.spelling)
         self.annotations = get_annotations(cursor)
         self.access = cursor.access_specifier
 
 class Method(object):
     def __init__(self, cursor):
         self.name = cursor.spelling
-        print ' %s(%s): %s'%(self.name, ', '.join(map(lambda x: '%s:%s'%(x.spelling, x.type.spelling), cursor.get_arguments())), cursor.result_type.spelling)
+        if opts.uml:
+            print ' %s(%s): %s'%(self.name, ', '.join(map(lambda x: '%s:%s'%(x.spelling, x.type.spelling), cursor.get_arguments())), cursor.result_type.spelling)
         self.annotations = get_annotations(cursor)
         self.access = cursor.access_specifier
 
 class Class(object):
     def __init__(self, cursor):
         self.name = cursor.spelling
-        print 'class: %s'%(self.name,)
+        if opts.uml:
+            print 'class: %s'%(self.name,)
+        self.bases = []
         self.methods = []
         self.fields = []
+        self.enums = []
         self.annotations = get_annotations(cursor)
 
         for c in cursor.get_children():
-            #print c.kind
-            if (c.kind == clang.cindex.CursorKind.CXX_METHOD and
+            if opts.debug:
+                print c.kind
+            if c.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER:
+                self.bases.append(c.spelling)
+            elif (c.kind == clang.cindex.CursorKind.CXX_METHOD and
                 c.access_specifier == clang.cindex.AccessSpecifier.PUBLIC):
                 f = Method(c)
                 self.methods.append(f)
@@ -44,7 +67,12 @@ class Class(object):
                 c.access_specifier == clang.cindex.AccessSpecifier.PUBLIC):
                 f = Field(c)
                 self.fields.append(f)
-        print ''
+            elif (c.kind == clang.cindex.CursorKind.ENUM_DECL and
+                c.access_specifier == clang.cindex.AccessSpecifier.PUBLIC):
+                f = Enum(c)
+                self.enums.append(f)
+        if opts.uml:
+            print ''
 
 def build_classes(_input, cursor):
     result = []
@@ -66,15 +94,27 @@ def do_one(opts, _input, output):
     translation_unit = index.parse(_input, clang_args)
 
     classes = build_classes(_input, translation_unit.cursor)
-    tpl = Template(filename='struct.mako')
-    rendered = tpl.render(classes=classes, include_file=_input)
-    print output
-    with open(output, "w") as f:
+    rendered = ''
+    tpl = Template(filename=os.path.join('templates', opts.template+'.mako'))
+
+    if opts.template == 'struct':
+        classes = [x for x in classes if '::detail::enum_tag' not in x.bases]
+        rendered = tpl.render(classes=classes, include_file=_input, size_check=opts.size_check)
+    elif opts.template == 'enum':
+        classes = [x for x in classes if '::detail::enum_tag' in x.bases]
+        rendered = tpl.render(classes=classes, include_file=_input)
+    with file(opts.output, 'w') as f:
         f.write(rendered)
 
 
 def main():
+    global opts
     parser = argparse.ArgumentParser(description='database framelog upload script')
+    parser.add_argument('--template', '-t', required=True, help='template')
+    parser.add_argument('--size-check', action='store_true', help='size-check')
+    parser.add_argument('--debug', action='store_true', help='debug')
+    parser.add_argument('--uml', action='store_true', help='uml')
+    parser.add_argument('--output', '-o', type=str, required=True, help='output')
     parser.add_argument('input', help='input file')
     parser.add_argument('args', nargs=argparse.REMAINDER, help='remainding args')
     opts = parser.parse_args()

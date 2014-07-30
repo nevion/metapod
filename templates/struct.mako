@@ -12,10 +12,12 @@
         hdf_add_field("${f.name}", ${f.name});
         % endfor
     }
+% if size_check:
     static_assert(sizeof_unroller<
     % for i,f in enumerate(c.fields):
         decltype(declval<${c.name}>().${f.name})${',' if i == len(c.fields)-1 else ''}
     % endfor
         >::value == ${f.name}::SIZE, "packed ${f.name} size check failed")
+% endif
 
 % endfor
