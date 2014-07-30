@@ -12,7 +12,7 @@
         hdf_add_field("${f.name}", ${f.name});
         % endfor
     }
-    static_assert(sizeof_args<
+    static_assert(sizeof_unroller<
     % for i,f in enumerate(c.fields):
         decltype(declval<${c.name}>().${f.name})${',' if i == len(c.fields)-1 else ''}
     % endfor
