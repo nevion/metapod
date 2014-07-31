@@ -1,4 +1,4 @@
-<%doc> #include "${include_file}" </%doc>
+#include "${include_file}"
 <%
     def get_enum(x):
         for e in x.enums:

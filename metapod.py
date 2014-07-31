@@ -77,7 +77,11 @@ class Class(object):
 def build_classes(_input, cursor):
     result = []
     for c in cursor.get_children():
+        #print c.kind
+        #print dir(c)
+        #print dir(c.location)
         if (c.kind in (clang.cindex.CursorKind.CLASS_DECL, clang.cindex.CursorKind.STRUCT_DECL) and c.location.file.name == _input):
+            #print c.location.file, c.location.line, c.location.column, c.location.offset
             a_class = Class(c)
             result.append(a_class)
         elif c.kind == clang.cindex.CursorKind.NAMESPACE:
@@ -87,49 +91,62 @@ def build_classes(_input, cursor):
     return result
 
 
-def do_one(opts, _input, output):
+def do_one(opts, _input):
     clang.cindex.Config.set_library_file('/usr/lib64/libclang.so.3.4')
     index = clang.cindex.Index.create()
     clang_args = ['-x', 'c++', '-std=c++11', '-D__CODE_GENERATOR__']+opts.args
     translation_unit = index.parse(_input, clang_args)
 
     classes = build_classes(_input, translation_unit.cursor)
-    rendered = ''
 
-    if opts.template == 'struct' or opts.template == 'all':
-        tpl = Template(filename=os.path.join('templates', 'struct'+'.mako'))
-        klasses = [x for x in classes if '::detail::enum_tag' not in x.bases]
-        rendered += '\n' + tpl.render(classes=klasses, include_file=_input, size_check=opts.size_check)
-    if opts.template == 'enum' or opts.template == 'all':
-        tpl = Template(filename=os.path.join('templates', 'enum'+'.mako'))
-        klasses = [x for x in classes if '::detail::enum_tag' in x.bases]
-        rendered += '\n' + tpl.render(classes=klasses, include_file=_input)
-    with file(opts.output, 'w') as f:
-        f.write(rendered)
+    header_template = Template(filename=os.path.join('templates', 'struct_header.mako'))
+    generated_header_template = Template(filename=os.path.join('templates', 'struct_generated_header.mako'))
+    non_enum_classes = [x for x in classes if '::detail::enum_tag' not in x.bases]
+    #print 'header declarations: \n' + header_template.render(classes=klasses)
+    generated_header_body = generated_header_template.render(classes=non_enum_classes)
+    generated_header_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.basename(_input))
+    if opts.stdout:
+        print ('header definitions: %s\n'%(generated_header_outname)) + generated_header_body
+    else:
+        try:
+            os.makedirs(os.path.dirname(generated_header_outname))
+        except Exception as e:
+            pass
+        with file(generated_header_outname, 'w') as f:
+            f.write(generated_header_body)
+
+    rendered = ''
+    enum_template = Template(filename=os.path.join('templates', 'enum'+'.mako'))
+    enum_classes = [x for x in classes if '::detail::enum_tag' in x.bases]
+    rendered += enum_template.render(classes=enum_classes, include_file=_input)
+    struct_compiled_template = Template(filename=os.path.join('templates', 'struct_compiled.mako'))
+    rendered += '\n' + struct_compiled_template.render(classes=non_enum_classes, size_check = opts.size_check)
+
+    generated_cpp_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.splitext(os.path.basename(_input))[0]+'.cpp')
+    if opts.stdout:
+        print ('compiled definitions: %s\n'%(generated_cpp_outname)) +rendered 
+    else:
+        try:
+            os.makedirs(os.path.dirname(generated_cpp_outname))
+        except Exception as e:
+            pass
+        with file(generated_cpp_outname, 'w') as f:
+            f.write(rendered)
 
 
 def main():
     global opts
     parser = argparse.ArgumentParser(description='database framelog upload script')
-    parser.add_argument('--template', '-t', required=True, help='template')
     parser.add_argument('--size-check', action='store_true', help='size-check')
     parser.add_argument('--debug', action='store_true', help='debug')
     parser.add_argument('--uml', action='store_true', help='uml')
-    parser.add_argument('--output', '-o', type=str, required=True, help='output')
+    parser.add_argument('--stdout', action='store_true', help='output to stdout')
     parser.add_argument('input', help='input file')
     parser.add_argument('args', nargs=argparse.REMAINDER, help='remainding args')
     opts = parser.parse_args()
     for _input in [opts.input]:
-        head,ext = os.path.splitext(_input)
-
-        if ext == 'in':
-            head,ext = os.path.splitext(head)
-            output = head+ext
-        else:
-            output = head+'_generated'+ext
         try:
-            print _input, output
-            do_one(opts, _input, output)
+            do_one(opts, _input)
         except Exception as e:
             print 'error processing %s'%_input
             print e
