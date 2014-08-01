@@ -20,7 +20,7 @@
 const char *${c.name}::str[${c.name}::size()] = {
 % for f,v in _enum.valuepairs:
 % if f != 'MAX':
-    "${f}"${',' if i != len(c.fields)-1 else ''}
+    "${f}"${',' if i != len(c.fields)-2 else ''}
 % endif
 % endfor
 };
