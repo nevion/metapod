@@ -1,5 +1,3 @@
-#include "${include_file}"
-#include <utility>
 <%
     def get_enum(x):
         for e in x.enums:
@@ -31,5 +29,14 @@ static const std::pair<const char *, ${c.name}::type> ${c.name}_valuepairs[${len
     std::pair<const char *, ${c.name}::type>("${f}", ${c.name}::${f})${',' if i != len(c.fields)-1 else ''}
 % endfor
 };
+size_t ${c.name}::size(){
+    return ${len(_enum.valuepairs)};
+}
+const char* ${c.name}::string_at(const size_t index){
+    return ${c.name}_valuepairs[index].first;
+}
+${c.name}::type ${c.name}::value_at(const size_t index){
+    return ${c.name}_valuepairs[index].second;
+}
 % endif
 % endfor
