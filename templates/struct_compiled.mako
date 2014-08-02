@@ -6,7 +6,7 @@
         return False
 %>
 % for i,c in enumerate(classes):
-void ${c.name}::hdf_construct(H5::CompType &type){
+void ${c.name}::hdf_construct_type(H5::CompType &type){
     % for f in c.fields:
     hdf_add_field(${f.name});
     % endfor

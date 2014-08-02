@@ -1,5 +1,5 @@
 % for c in classes:
     template<typename Op>
     void visit(Op &op);
-    static void hdf_construct();
+    static void hdf_construct_type();
 % endfor
