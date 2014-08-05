@@ -31,16 +31,16 @@ _enum = get_enum(c)
 %>\
 % if is_fast_enum(c):
 const char *${accessor_name}::str[${accessor_name}::size()] = {
-% for f,v in _enum.valuepairs:
+% for (i, (f,v)) in enumerate(_enum.valuepairs):
 % if f != 'MAX':
-    "${f}"${',' if i != len(c.fields)-2 else ''}
+    "${f}"${',' if i != len(_enum.valuepairs)-2 else ''}
 % endif
 % endfor
 };
 % elif is_general_enum(c):
 static const std::pair<const char *, ${accessor_name}::type> ${flat_accessor_name}_valuepairs[${len(_enum.valuepairs)}] = {
-% for f,v in _enum.valuepairs:
-    std::pair<const char *, ${accessor_name}::type>("${f}", ${accessor_name}::${f})${',' if i != len(c.fields)-1 else ''}
+% for (i, (f,v)) in enumerate(_enum.valuepairs):
+    std::pair<const char *, ${accessor_name}::type>("${f}", ${accessor_name}::${f})${',' if i != len(_enum.valuepairs)-1 else ''}
 % endfor
 };
 size_t ${accessor_name}::size(){
