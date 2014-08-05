@@ -52,14 +52,18 @@ class Class(object):
         self.methods = []
         self.fields = []
         self.enums = []
+        self.classes = []
         self.annotations = get_annotations(cursor)
-        self.namespace = list(namespace)
+        if isinstance(namespace, Class):
+            self.namespace = namespace
+        else:
+            self.namespace = list(namespace)
 
         for c in cursor.get_children():
             if opts.debug:
                 print c.kind
             if c.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER:
-                self.bases.append(c.spelling)
+                self.bases.append(c.displayname)
             elif (c.kind == clang.cindex.CursorKind.CXX_METHOD and
                 c.access_specifier == clang.cindex.AccessSpecifier.PUBLIC):
                 f = Method(c)
@@ -72,6 +76,10 @@ class Class(object):
                 c.access_specifier == clang.cindex.AccessSpecifier.PUBLIC):
                 f = Enum(c)
                 self.enums.append(f)
+            elif c.kind in (clang.cindex.CursorKind.CLASS_DECL, clang.cindex.CursorKind.STRUCT_DECL):
+                #print c.location.file, c.location.line, c.location.column, c.location.offset
+                a_class = Class(self, c)
+                self.classes.append(a_class)
         if opts.uml:
             print ''
 
@@ -97,6 +105,7 @@ def build_classes(_input, cursor, namespace):
     return result
 
 
+from mako import exceptions
 def do_one(opts, _input):
     clang.cindex.Config.set_library_file('/usr/lib64/libclang.so.3.4')
     index = clang.cindex.Index.create()
@@ -105,43 +114,51 @@ def do_one(opts, _input):
 
     namespaced_classes = build_classes(_input, translation_unit.cursor, [])
 
-    all_classes = [y for classes in namespaced_classes.values() for y in classes]
+    namespace_preamble_template = Template(filename=os.path.join('templates', 'namespace_preamble.mako'))
+    namespace_footer_template = Template(filename=os.path.join('templates', 'namespace_footer.mako'))
+
     header_template = Template(filename=os.path.join('templates', 'struct_header.mako'))
     generated_header_template = Template(filename=os.path.join('templates', 'struct_generated_header.mako'))
     #print 'header declarations: \n' + header_template.render(classes=klasses)
-    generated_header_body = generated_header_template.render(namespaced_classes=namespaced_classes)
-    generated_header_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.basename(_input))
-    if opts.stdout:
-        print ('header definitions: %s\n'%(generated_header_outname)) + generated_header_body
-    else:
-        try:
-            os.makedirs(os.path.dirname(generated_header_outname))
-        except Exception as e:
-            pass
-        with file(generated_header_outname, 'w') as f:
-            f.write(generated_header_body)
+    rendered = ''
+    try:
+        rendered += generated_header_template.render(namespaced_classes = namespaced_classes)
+        generated_header_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.basename(_input))
+        if opts.stdout:
+            print ('header definitions: %s\n'%(generated_header_outname)) + rendered
+        else:
+            try:
+                os.makedirs(os.path.dirname(generated_header_outname))
+            except Exception as e:
+                pass
+            with file(generated_header_outname, 'w') as f:
+                f.write(rendered)
+    except:
+        #print exceptions.html_error_template().render()
+        print exceptions.text_error_template().render()
 
     rendered = ''
     preamble_template = Template(filename=os.path.join('templates', 'preamble.mako'))
-    namespace_preamble_template = Template(filename=os.path.join('templates', 'namespace_preamble.mako'))
     enum_template = Template(filename=os.path.join('templates', 'enum'+'.mako'))
     struct_compiled_template = Template(filename=os.path.join('templates', 'struct_compiled.mako'))
-    namespace_footer_template = Template(filename=os.path.join('templates', 'namespace_footer.mako'))
 
-    rendered += preamble_template.render()
-    for namespace, classes in namespaced_classes.iteritems():
-        if len(classes) == 0:
-            continue
-        enum_classes = [x for x in classes if '::detail::enum_tag' in x.bases]
-        non_enum_classes = [x for x in classes if '::detail::enum_tag' not in x.bases]
-        rendered += namespace_preamble_template.render(namespace=namespace)
-        rendered += enum_template.render(classes=enum_classes)
-        rendered += '\n' + struct_compiled_template.render(classes=non_enum_classes, size_check = opts.size_check)
-        rendered += namespace_footer_template.render(namespace=namespace)
+    try:
+        rendered += preamble_template.render()
+        for namespace, classes in namespaced_classes.iteritems():
+            if len(classes) == 0:
+                continue
+            rendered += namespace_preamble_template.render(namespace=namespace)
+            rendered += enum_template.render(classes=classes)
+            rendered += '\n' + struct_compiled_template.render(classes=classes, size_check = opts.size_check, hdf=opts.hdf, yaml=opts.yaml)
+            rendered += namespace_footer_template.render(namespace=namespace)
 
-    generated_cpp_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.splitext(os.path.basename(_input))[0]+'.cpp')
+        generated_cpp_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.splitext(os.path.basename(_input))[0]+'.cpp')
+    except:
+        #print exceptions.html_error_template().render()
+        print exceptions.text_error_template().render()
+
     if opts.stdout:
-        print ('compiled definitions: %s\n'%(generated_cpp_outname)) +rendered 
+        print ('compiled definitions: %s\n'%(generated_cpp_outname)) +rendered
     else:
         try:
             os.makedirs(os.path.dirname(generated_cpp_outname))
@@ -155,6 +172,8 @@ def main():
     global opts
     parser = argparse.ArgumentParser(description='database framelog upload script')
     parser.add_argument('--size-check', action='store_true', help='size-check')
+    parser.add_argument('--hdf', action='store_true', help='hdf')
+    parser.add_argument('--yaml', action='store_true', help='yaml')
     parser.add_argument('--debug', action='store_true', help='debug')
     parser.add_argument('--uml', action='store_true', help='uml')
     parser.add_argument('--stdout', action='store_true', help='output to stdout')

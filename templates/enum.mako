@@ -1,42 +1,59 @@
 <%
-    def get_enum(x):
-        for e in x.enums:
-            if e.name == 'type':
-                return e
-        return None
+def get_enum(x):
+    for e in x.enums:
+        if e.name == 'type':
+            return e
+    return None
 
-    def enum_keys(e):
-        return [x[0] for x in e.valuepairs]
+def enum_keys(e):
+    return [x[0] for x in e.valuepairs]
 
-    enum_classes = [x for x in classes if '::detail::enum_tag' in x.bases]
-    fast_enum_classes =  [x for x in enum_classes if 'MAX' in enum_keys(get_enum(x))]
-    general_enum_classes = [x for x in enum_classes if 'MAX' not in enum_keys(get_enum(x))]
-%>
-% for c in enum_classes:
-% if c in fast_enum_classes:
-<% _enum = get_enum(c) %>
-const char *${c.name}::str[${c.name}::size()] = {
+def is_enum_class(x):
+    return '::detail::enum_tag' in x.bases
+
+def is_fast_enum(x):
+    return is_enum_class(x) and ('MAX' in enum_keys(get_enum(x)))
+def is_general_enum(x):
+    return is_enum_class(x) and ('MAX' not in enum_keys(get_enum(x)))
+%>\
+<%def name="enum_boilerplate(parents, c)">\
+<%
+for child in c.classes:
+    enum_boilerplate(parents + [c], child)
+accessor_name = c.name
+flat_accessor_name = c.name
+if len(parents) > 0:
+    accessor_name = '::'.join([x.name for x in parents]) + '::'+accessor_name
+    flat_accessor_name = '_'.join([x.name for x in parents]) + '_'+accessor_name
+if not is_enum_class(c):
+    return
+_enum = get_enum(c)
+%>\
+% if is_fast_enum(c):
+const char *${accessor_name}::str[${accessor_name}::size()] = {
 % for f,v in _enum.valuepairs:
 % if f != 'MAX':
     "${f}"${',' if i != len(c.fields)-2 else ''}
 % endif
 % endfor
 };
-% elif c in general_enum_classes:
-<% _enum = get_enum(c) %>
-static const std::pair<const char *, ${c.name}::type> ${c.name}_valuepairs[${len(_enum.valuepairs)}] = {
+% elif is_general_enum(c):
+static const std::pair<const char *, ${accessor_name}::type> ${flat_accessor_name}_valuepairs[${len(_enum.valuepairs)}] = {
 % for f,v in _enum.valuepairs:
-    std::pair<const char *, ${c.name}::type>("${f}", ${c.name}::${f})${',' if i != len(c.fields)-1 else ''}
+    std::pair<const char *, ${accessor_name}::type>("${f}", ${accessor_name}::${f})${',' if i != len(c.fields)-1 else ''}
 % endfor
 };
-size_t ${c.name}::size(){
+size_t ${accessor_name}::size(){
     return ${len(_enum.valuepairs)};
 }
-const char* ${c.name}::string_at(const size_t index){
-    return ${c.name}_valuepairs[index].first;
+const char* ${accessor_name}::string_at(const size_t index){
+    return ${flat_accessor_name}_valuepairs[index].first;
 }
-${c.name}::type ${c.name}::value_at(const size_t index){
-    return ${c.name}_valuepairs[index].second;
+${accessor_name}::type ${accessor_name}::value_at(const size_t index){
+    return ${flat_accessor_name}_valuepairs[index].second;
 }
 % endif
+</%def>\
+% for c in classes:
+<% enum_boilerplate([], c) %>\
 % endfor
