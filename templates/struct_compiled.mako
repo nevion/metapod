@@ -18,20 +18,20 @@ if len(parents) > 0:
     accessor_name = '::'.join([x.name for x in parents]) + '::'+accessor_name
     flat_accessor_name = '_'.join([x.name for x in parents]) + '_'+accessor_name
 %>\
-%if yaml and ('class AppConfigBase' in c.bases or 'yamlable_object_tag' in c.bases):
-void ${c.name}::apply(const YAML::Node &node){
+%if yaml and ('class AppConfigBase' in c.bases or 'class IYAMLable' in c.bases or 'yamlable_object_tag' in c.bases):
+void ${accessor_name}::apply(const YAML::Node &node){
     % for f in c.fields:
     yaml_opt_load(${f.name});
     % endfor
 }
-void ${c.name}::encode(YAML::Emitter &emmiter) const{
+void ${accessor_name}::encode(YAML::Emitter &emitter) const{
     % for f in c.fields:
     yaml_save(${f.name});
     % endfor
 }
 %endif
 %if hdf:
-void ${c.name}::hdf_construct_type(H5::CompType &type){
+void ${accessor_name}::hdf_construct_type(H5::CompType &type){
     % for f in c.fields:
     hdf_add_field(${f.name});
     % endfor
@@ -40,9 +40,9 @@ void ${c.name}::hdf_construct_type(H5::CompType &type){
 % if size_check and has_size_enum(c):
 static_assert(sizeof_unroller<
 % for i,f in enumerate(c.fields):
-    decltype(std::declval<${c.name}>().${f.name})${',' if i != len(c.fields)-1 else ''}
+    decltype(std::declval<${accessor_name}>().${f.name})${',' if i != len(c.fields)-1 else ''}
 % endfor
-    >::value == ${c.name}::SIZE, "packed ${c.name} size check failed");
+    >::value == ${c.name}::SIZE, "packed ${accessor_name} size check failed");
 % endif
 </%def>\
 <%

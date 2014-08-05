@@ -14,7 +14,7 @@ if len(parents) > 0:
     flat_accessor_name = '_'.join([x.name for x in parents]) + '_'+accessor_name
 %>\
 template<typename Op>
-void ${c.name}::visit_fields(Op &op){
+void ${accessor_name}::visit_fields(Op &op){
     % for f in c.fields:
     op("${f.name}", ${f.name});
     % endfor
