@@ -9,7 +9,7 @@ metapod is a code generation utility for performing some ahead-of-compile-time i
 * Autocoding YAML apply/encode methods
 * Autocoding HDF5 Compound Type construction
 
-C++11 handles the heavy lifting using type traits and other template tricks, this tool just addresses the lack of class introspection with the help of clang.  A benefit of this approach is that the generated code has no dependence on clang and should be usable on any compiler decent compiler.
+C++11 handles the heavy lifting using type traits and other template tricks, this tool just addresses the lack of class introspection with the help of clang.  A benefit of this approach is that the generated code has no dependence on clang and should be usable on any decent compiler.
 
 One of helpful bits this utility has enabled is less dependence on ```__attribute__(((packed)))```.  Packed structures carry as many disadvantages as advantages such as:
 
