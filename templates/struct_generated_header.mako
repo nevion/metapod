@@ -34,13 +34,13 @@ if len(parents) > 0:
 template<typename RHST>
 void ${accessor_name}::assign_from(const RHST &rhs){
     % for f in c.fields:
-    this->${f.name} = rhs.${f.name};
+    assign(this->${f.name}, rhs.${f.name});
     % endfor
 }
 template<typename RHST>
 void ${accessor_name}::assign_to(RHST &rhs){
     % for f in c.fields:
-    rhs.${f.name} = this->${f.name};
+    assign(rhs.${f.name}, this->${f.name});
     % endfor
 }
 </%def>\

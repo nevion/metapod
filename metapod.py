@@ -122,7 +122,7 @@ def do_one(opts, _input):
     #print 'header declarations: \n' + header_template.render(classes=klasses)
     rendered = ''
     try:
-        rendered += generated_header_template.render(namespaced_classes = namespaced_classes, concept_assignable=opts.concept_assignable)
+        rendered += generated_header_template.render(namespaced_classes = namespaced_classes, hdf=opts.hdf, yaml=opts.yaml, visitors=opts.visitors, concept_assignable=opts.concept_assignable)
         generated_header_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.basename(_input))
         if opts.stdout:
             print ('header definitions: %s\n'%(generated_header_outname)) + rendered
@@ -149,7 +149,7 @@ def do_one(opts, _input):
                 continue
             rendered += namespace_preamble_template.render(namespace=namespace)
             rendered += enum_template.render(classes=classes)
-            rendered += '\n' + struct_compiled_template.render(classes=classes, size_check = opts.size_check, hdf=opts.hdf, yaml=opts.yaml, visitors=opts.visitors)
+            rendered += '\n' + struct_compiled_template.render(classes=classes, size_check = opts.size_check, hdf=opts.hdf, yaml=opts.yaml)
             rendered += namespace_footer_template.render(namespace=namespace)
 
         generated_cpp_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.splitext(os.path.basename(_input))[0]+'.cpp')
