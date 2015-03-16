@@ -107,7 +107,7 @@ def build_classes(_input, cursor, namespace):
 
 from mako import exceptions
 def do_one(opts, _input):
-    clang.cindex.Config.set_library_file('/usr/lib64/libclang.so.3.4')
+    clang.cindex.Config.set_library_file('/usr/lib64/libclang.so.3.5')
     index = clang.cindex.Index.create()
     clang_args = ['-x', 'c++', '-std=c++11', '-D__CODE_GENERATOR__']+opts.args
     translation_unit = index.parse(_input, clang_args)
