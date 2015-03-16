@@ -20,6 +20,30 @@ void ${accessor_name}::visit_fields(Op &op){
     % endfor
 }
 </%def>\
+<%def name="gen_assignable(parents, c)">
+<%
+for child in c.classes:
+    if not is_enum_class(child):
+        gen_assignable(parents + [c], child)
+accessor_name = c.name
+flat_accessor_name = c.name
+if len(parents) > 0:
+    accessor_name = '::'.join([x.name for x in parents]) + '::'+accessor_name
+    flat_accessor_name = '_'.join([x.name for x in parents]) + '_'+accessor_name
+%>\
+template<typename RHST>
+void ${accessor_name}::assign_from(const RHST &rhs){
+    % for f in c.fields:
+    this->${f.name} = rhs.${f.name};
+    % endfor
+}
+template<typename RHST>
+void ${accessor_name}::assign_to(RHST &rhs){
+    % for f in c.fields:
+    rhs.${f.name} = this->${f.name};
+    % endfor
+}
+</%def>\
 % for namespace, classes in namespaced_classes.iteritems():
 <%
 nonenum_classes = [x for x in classes if not is_enum_class(x)]
@@ -31,8 +55,13 @@ if len(nonenum_classes) == 0:
 ${nsprint}
 %endif
 % for c in nonenum_classes:
+%if visitors:
 <% gen_visitors([], c) %>\
-% endfor
+%endif
+%if concept_assignable:
+<% gen_assignable([], c) %>\
+%endif
+%endfor
 % if nsprint is not None:
 ${''.join(['}' for x in namespace])}
 %endif
