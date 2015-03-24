@@ -122,7 +122,7 @@ def do_one(opts, _input):
     #print 'header declarations: \n' + header_template.render(classes=klasses)
     rendered = ''
     try:
-        rendered += generated_header_template.render(namespaced_classes = namespaced_classes, hdf=opts.hdf, yaml=opts.yaml, visitors=opts.visitors, concept_assignable=opts.concept_assignable)
+        rendered += generated_header_template.render(namespaced_classes = namespaced_classes, hdf=opts.hdf, yaml=opts.yaml, visitors=opts.visitors, concept_assignable=opts.concept_assignable, concept_assignable_accessors=opts.concept_assignable_accessors)
         generated_header_outname = os.path.join(os.path.dirname(_input), 'generated', os.path.basename(_input))
         if opts.stdout:
             print ('header definitions: %s\n'%(generated_header_outname)) + rendered
@@ -176,6 +176,7 @@ def main():
     parser.add_argument('--yaml', action='store_true', help='yaml')
     parser.add_argument('--visitors', action='store_true', help='visitors')
     parser.add_argument('--concept-assignable', action='store_true', help='concept-assignable')
+    parser.add_argument('--concept-assignable-accessors', action='store_true', help='concept-assignable-accessors')
     parser.add_argument('--debug', action='store_true', help='debug')
     parser.add_argument('--uml', action='store_true', help='uml')
     parser.add_argument('--stdout', action='store_true', help='output to stdout')

@@ -34,13 +34,21 @@ if len(parents) > 0:
 template<typename RHST>
 void ${accessor_name}::assign_from(const RHST &rhs){
     % for f in c.fields:
+%if concept_assignable_accessors:
+    assign(this->${f.name}, rhs.${f.name}());
+%else:
     assign(this->${f.name}, rhs.${f.name});
+%endif
     % endfor
 }
 template<typename RHST>
-void ${accessor_name}::assign_to(RHST &rhs){
+void ${accessor_name}::assign_to(RHST &rhs) const{
     % for f in c.fields:
+%if concept_assignable_accessors:
+    rhs.${f.name}(this->${f.name});
+%else:
     assign(rhs.${f.name}, this->${f.name});
+%endif
     % endfor
 }
 </%def>\
