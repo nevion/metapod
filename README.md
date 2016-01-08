@@ -13,7 +13,7 @@ C++11 handles the heavy lifting using type traits and other template tricks, thi
 
 One of helpful bits this utility has enabled is less dependence on ```__attribute__(((packed)))```.  Packed structures carry as many disadvantages as advantages such as:
 
-* Not being able to take the address of fields
+* Not being able to take the address of fields (which can break functions taking const &)
 * Unaligned accesses.
 
 Instead, simply make an IOing visitor object which handles POD types itself and together with the autocoded size-checks you can be sure you're packing bytes correctly, potentially performing endian conversions along the way, optionally using field names in the process.
