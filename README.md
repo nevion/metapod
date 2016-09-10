@@ -4,7 +4,7 @@
 
 metapod is a code generation utility for performing some ahead-of-compile-time introspection on POD datatypes (e.g. simple data structs) and performing some menial code generation on them.  Some tasks I have used it for include:
 
-* Autocoding templated visitor methods - [the visitor pattern](http://en.wikipedia.org/wiki/Visitor_pattern) is a very simple but very helpful pattern in generic programming: 
+* Autocoding templated visitor methods - [the visitor pattern](http://en.wikipedia.org/wiki/Visitor_pattern) is a very simple but very helpful pattern in generic programming: you can have callable object "applied" over each field of an object - this helps deal with C++'s lack of introspection.
 * Adding size checks to ensure IOs of PODS (packed or unpacked in memory) have the correct number of bytes - a real life-saver for protocol implementation or communications code.
 * Autocoding YAML apply/encode methods
 * Autocoding HDF5 Compound Type construction
@@ -16,6 +16,8 @@ One of helpful bits this utility has enabled is less dependence on ```__attribut
 * Not being able to take the address of fields (which can break functions taking const &)
 * Unaligned accesses.
 
+In short, packed fields break many cases we normally program with.
+
 Instead, simply make an IOing visitor object which handles POD types itself and together with the autocoded size-checks you can be sure you're packing bytes correctly, potentially performing endian conversions along the way, optionally using field names in the process.
 
 Note: the python binding of clang is a bit of a second class citizen - functional but ever changing and often running behind the C++ libraries and sometimes breaking.
@@ -24,6 +26,7 @@ Note: the python binding of clang is a bit of a second class citizen - functiona
 ## Examples
 
 `./metapod.py --uml --hdf --size-check ../path/to/types.h -I../path/to/includes `
+
 `./metapod.py --yaml ../path/to/types.h -I../path/to/includes `
 
 ## Output
